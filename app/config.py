@@ -29,7 +29,7 @@ def get_settings() -> Settings:
     """Read env on every call so tests can change it easily."""
     return Settings(
         hf_token=os.getenv("HF_TOKEN", ""),
-        llm_model=os.getenv("HF_LLM_MODEL", "Qwen/Qwen2.5-7B-Instruct"),
+        llm_model=os.getenv("HF_LLM_MODEL", "Qwen/Qwen3.2-3B-Instruct"),
         embed_model=os.getenv("HF_EMBED_MODEL", "sentence-transformers/all-MiniLM-L6-v2"),
         api_key=os.getenv("API_KEY", ""),
         confidence_threshold=float(os.getenv("CONFIDENCE_THRESHOLD", "0.7")),
