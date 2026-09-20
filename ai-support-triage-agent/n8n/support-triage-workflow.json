@@ -1,0 +1,123 @@
+{
+  "name": "AI Support Triage",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "support-ticket",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a1f0c9d2-0001-4b1a-9c11-000000000001",
+      "name": "Ticket Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 300],
+      "webhookId": "support-ticket"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://agent:8000/api/triage",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-API-Key", "value": "REPLACE_WITH_YOUR_API_KEY" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": { "timeout": 90000 }
+      },
+      "id": "a1f0c9d2-0002-4b1a-9c11-000000000002",
+      "name": "AI Triage Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [260, 300],
+      "notes": "Change the URL to https://YOUR-SERVICE.onrender.com/api/triage when using the deployed agent. Put your API_KEY in the header value."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2 },
+          "conditions": [
+            {
+              "id": "c0ffee00-0003-4b1a-9c11-000000000003",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "escalate",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a1f0c9d2-0003-4b1a-9c11-000000000003",
+      "name": "Needs a human?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [520, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://hooks.slack.com/services/REPLACE/WITH/YOUR_SLACK_WEBHOOK",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: ':rotating_light: Ticket ' + $json.ticket_id + ' [' + $json.urgency + ' / ' + $json.category + '] needs a human. Reason: ' + $json.reason }) }}",
+        "options": {}
+      },
+      "id": "a1f0c9d2-0004-4b1a-9c11-000000000004",
+      "name": "Alert support team (Slack)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [800, 180],
+      "notes": "Create a free Slack Incoming Webhook and paste its URL here. Or swap this node for Email, Microsoft Teams, Jira or Zendesk."
+    },
+    {
+      "parameters": {},
+      "id": "a1f0c9d2-0005-4b1a-9c11-000000000005",
+      "name": "Send auto-reply (plug in Gmail or SendGrid)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [800, 420],
+      "notes": "Replace with a Gmail / SMTP / SendGrid node. Use {{ $json.reply }} as the message body."
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($('AI Triage Agent').item.json) }}",
+        "options": {}
+      },
+      "id": "a1f0c9d2-0006-4b1a-9c11-000000000006",
+      "name": "Respond to caller",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1100, 300]
+    }
+  ],
+  "connections": {
+    "Ticket Webhook": {
+      "main": [[{ "node": "AI Triage Agent", "type": "main", "index": 0 }]]
+    },
+    "AI Triage Agent": {
+      "main": [[{ "node": "Needs a human?", "type": "main", "index": 0 }]]
+    },
+    "Needs a human?": {
+      "main": [
+        [{ "node": "Alert support team (Slack)", "type": "main", "index": 0 }],
+        [{ "node": "Send auto-reply (plug in Gmail or SendGrid)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Alert support team (Slack)": {
+      "main": [[{ "node": "Respond to caller", "type": "main", "index": 0 }]]
+    },
+    "Send auto-reply (plug in Gmail or SendGrid)": {
+      "main": [[{ "node": "Respond to caller", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "active": false,
+  "pinData": {}
+}

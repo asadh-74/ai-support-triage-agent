@@ -1,0 +1,83 @@
+{
+  "name": "Refresh Knowledge Base (Firecrawl)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "days", "daysInterval": 1, "triggerAtHour": 6 }
+          ]
+        }
+      },
+      "id": "b2e1d0c3-0001-4c2b-8d22-000000000001",
+      "name": "Every day at 6am",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://agent:8000/api/kb/sync",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-API-Key", "value": "REPLACE_WITH_YOUR_API_KEY" }
+          ]
+        },
+        "options": { "timeout": 300000 }
+      },
+      "id": "b2e1d0c3-0002-4c2b-8d22-000000000002",
+      "name": "Re-scrape website (Firecrawl)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [280, 300],
+      "onError": "continueErrorOutput",
+      "notes": "Change the URL to https://YOUR-SERVICE.onrender.com/api/kb/sync for the deployed agent. The agent scrapes the pages listed in its KB_SOURCE_URLS setting."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://hooks.slack.com/services/REPLACE/WITH/YOUR_SLACK_WEBHOOK",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: ':white_check_mark: Knowledge base refreshed from ' + $json.pages + ' web page(s) in ' + $json.seconds + 's' }) }}",
+        "options": {}
+      },
+      "id": "b2e1d0c3-0003-4c2b-8d22-000000000003",
+      "name": "Slack: refreshed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [580, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://hooks.slack.com/services/REPLACE/WITH/YOUR_SLACK_WEBHOOK",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: ':warning: Knowledge base refresh FAILED. The agent keeps using its previous knowledge. Details: ' + JSON.stringify($json.error || $json) }) }}",
+        "options": {}
+      },
+      "id": "b2e1d0c3-0004-4c2b-8d22-000000000004",
+      "name": "Slack: refresh failed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [580, 420]
+    }
+  ],
+  "connections": {
+    "Every day at 6am": {
+      "main": [[{ "node": "Re-scrape website (Firecrawl)", "type": "main", "index": 0 }]]
+    },
+    "Re-scrape website (Firecrawl)": {
+      "main": [
+        [{ "node": "Slack: refreshed", "type": "main", "index": 0 }],
+        [{ "node": "Slack: refresh failed", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "active": false,
+  "pinData": {}
+}

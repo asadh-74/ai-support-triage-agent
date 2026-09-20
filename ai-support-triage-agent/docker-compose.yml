@@ -1,0 +1,24 @@
+# Run the whole system on your laptop:  docker compose up --build
+#   agent -> http://localhost:8000   (web demo + API docs at /docs)
+#   n8n   -> http://localhost:5678   (workflow editor)
+services:
+  agent:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  n8n:
+    image: n8nio/n8n:latest
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+    restart: unless-stopped
+    depends_on:
+      - agent
+
+volumes:
+  n8n_data:

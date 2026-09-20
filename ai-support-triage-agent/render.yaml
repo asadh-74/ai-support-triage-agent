@@ -1,0 +1,53 @@
+# Render "Blueprint" = infrastructure as code.
+# Instead of clicking through a dashboard, the deployment is described in a file that lives in Git.
+# Render reads this file and creates/updates the service automatically on every push.
+services:
+  - type: web
+    name: support-triage-agent
+    runtime: docker            # builds the Dockerfile in this repo
+    plan: free
+    healthCheckPath: /health   # Render restarts the service if this stops answering
+    autoDeploy: true           # every push to the main branch redeploys (this is CI/CD)
+    envVars:
+      - key: HF_TOKEN
+        sync: false            # secret: you type it once in the Render dashboard, never in Git
+      - key: API_KEY
+        generateValue: true    # Render generates a random secret; n8n must send it as X-API-Key
+      - key: HF_LLM_MODEL
+        value: Qwen/Qwen2.5-7B-Instruct
+      - key: HF_EMBED_MODEL
+        value: sentence-transformers/all-MiniLM-L6-v2
+      - key: CONFIDENCE_THRESHOLD
+        value: "0.7"
+      - key: COMPANY_NAME
+        value: ShopNova
+      # --- Firecrawl: live knowledge from your website (optional) ---
+      - key: FIRECRAWL_API_KEY
+        sync: false            # secret
+      - key: KB_SOURCE_URLS
+        sync: false            # e.g. https://yoursite.com/help/returns,https://yoursite.com/help/shipping
+      - key: KB_CRAWL_LIMIT
+        value: "1"
+      - key: KB_SYNC_ON_STARTUP
+        value: "true"          # Render's free disk is wiped on restart, so re-scrape when the service boots
+
+  # OPTIONAL: run n8n on Render too.
+  # n8n needs more memory than the free plan offers and a disk so workflows survive restarts,
+  # so it requires a paid instance. For a portfolio, running n8n locally with docker-compose
+  # (see README) and recording a short video is the cheaper route.
+  #
+  # - type: web
+  #   name: n8n-orchestrator
+  #   runtime: image
+  #   image:
+  #     url: docker.io/n8nio/n8n:latest
+  #   plan: starter
+  #   disk:
+  #     name: n8n-data
+  #     mountPath: /home/node/.n8n
+  #     sizeGB: 1
+  #   envVars:
+  #     - key: N8N_PORT
+  #       value: "5678"
+  #     - key: WEBHOOK_URL
+  #       sync: false          # set to your n8n service URL, e.g. https://n8n-orchestrator.onrender.com/

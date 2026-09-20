@@ -1,0 +1,6 @@
+fastapi>=0.115,<1.0
+uvicorn[standard]>=0.30
+huggingface_hub>=0.27
+numpy>=1.26
+pydantic>=2.7
+firecrawl-py>=4.0

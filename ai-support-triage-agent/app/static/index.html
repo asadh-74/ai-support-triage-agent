@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Support Triage Agent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&family=Schibsted+Grotesk:wght@400;500;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #F3F5F8;
+    --panel: #FFFFFF;
+    --ink: #172033;
+    --muted: #5A6579;
+    --line: #D3D9E3;
+    --auto: #12805C;
+    --auto-bg: #DDF3EA;
+    --human: #C2382B;
+    --human-bg: #FBE4E1;
+    --sans: "Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --serif: "Newsreader", Georgia, "Times New Roman", serif;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font: 400 16px/1.5 var(--sans);
+  }
+  a { color: inherit; }
+  :focus-visible { outline: 3px solid #2F6FED; outline-offset: 2px; border-radius: 4px; }
+
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 28px 20px 64px; }
+
+  header { display: flex; flex-wrap: wrap; gap: 16px 40px; justify-content: space-between; align-items: end; margin-bottom: 28px; }
+  h1 { font-size: clamp(28px, 4vw, 40px); line-height: 1.1; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 8px; }
+  header p { margin: 0; max-width: 56ch; color: var(--muted); }
+
+  .stats { display: flex; gap: 22px; flex-wrap: wrap; margin: 0; padding: 0; list-style: none; }
+  .stats li { display: flex; flex-direction: column; }
+  .stats b { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .stats span { font-size: 13px; color: var(--muted); }
+
+  .notice { background: #FFF4D6; border: 1px solid #E6CF85; border-radius: 6px; padding: 10px 14px; margin-bottom: 20px; font-size: 14px; }
+  .notice[hidden] { display: none; }
+
+  .grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 28px; align-items: start; }
+  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+
+  h2 { font-size: 15px; font-weight: 600; margin: 0 0 10px; }
+
+  /* ---- inbox ---- */
+  .inbox { list-style: none; margin: 0 0 26px; padding: 0; border-top: 1px solid var(--line); }
+  .inbox button {
+    display: block; width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line);
+    padding: 11px 6px; font: inherit; color: inherit; cursor: pointer;
+  }
+  .inbox button:hover { background: #E9EDF3; }
+  .inbox button[aria-pressed="true"] { background: #E3E9F5; box-shadow: inset 3px 0 0 var(--ink); }
+  .inbox strong { display: block; font-weight: 600; font-size: 15px; }
+  .inbox span { display: block; font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ---- letter (customer's voice) ---- */
+  .letter { background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 18px 20px 20px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+  input[type="text"], textarea {
+    width: 100%; border: 0; border-bottom: 1px solid var(--line); background: transparent; border-radius: 0;
+    font: 400 19px/1.5 var(--serif); color: var(--ink); padding: 6px 0;
+  }
+  input[type="text"] { font-weight: 400; font-style: italic; margin-bottom: 14px; }
+  textarea { resize: vertical; min-height: 150px; }
+  input:focus, textarea:focus { outline: none; border-bottom-color: var(--ink); box-shadow: 0 1px 0 var(--ink); }
+  .send { margin-top: 16px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  button.primary {
+    background: var(--ink); color: #fff; border: 0; border-radius: 4px; padding: 11px 20px;
+    font: 600 15px var(--sans); cursor: pointer;
+  }
+  button.primary:disabled { opacity: .55; cursor: progress; }
+  .hint { font-size: 13px; color: var(--muted); }
+
+  /* ---- decision ---- */
+  .empty { border: 1px dashed var(--line); border-radius: 4px; padding: 36px 24px; color: var(--muted); }
+  .empty b { display: block; color: var(--ink); font-size: 17px; margin-bottom: 4px; }
+
+  .tag {
+    position: relative; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;
+    padding: 20px 26px 20px 64px; margin-bottom: 20px;
+    border-radius: 6px 30px 30px 6px; border: 2px solid var(--tagc); background: var(--tagbg); color: var(--tagc);
+    transform-origin: 18px 50%;
+  }
+  .tag::before {  /* the punched hole */
+    content: ""; position: absolute; left: 22px; top: 50%; width: 20px; height: 20px; margin-top: -10px;
+    border-radius: 50%; background: var(--paper); border: 2px solid var(--tagc);
+  }
+  .tag.auto { --tagc: var(--auto); --tagbg: var(--auto-bg); }
+  .tag.human { --tagc: var(--human); --tagbg: var(--human-bg); }
+  .tag h3 { margin: 0; font-size: clamp(24px, 3.4vw, 32px); font-weight: 800; letter-spacing: -0.01em; line-height: 1.1; }
+  .tag .conf { text-align: right; font-size: 13px; line-height: 1.3; }
+  .tag .conf b { display: block; font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tag.drop { animation: settle .7s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes settle { 0% { transform: rotate(-7deg) translateY(-10px); opacity: 0; } 55% { transform: rotate(2deg); opacity: 1; } 100% { transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .tag.drop { animation: none; } }
+
+  dl.facts { display: flex; flex-wrap: wrap; gap: 8px 32px; margin: 0 0 20px; }
+  dl.facts div { display: flex; flex-direction: column; }
+  dl.facts dt { font-size: 13px; color: var(--muted); }
+  dl.facts dd { margin: 0; font-weight: 600; text-transform: capitalize; }
+  dl.facts dd.hot { color: var(--human); }
+
+  .block { margin-bottom: 22px; }
+  .reason { margin: 0; padding-left: 14px; border-left: 3px solid var(--tagc-solid, var(--line)); }
+  pre.reply {
+    margin: 0; white-space: pre-wrap; word-wrap: break-word; font: 400 15px/1.55 var(--sans);
+    background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 14px 16px;
+  }
+
+  ol.trace { list-style: none; margin: 0; padding: 0 0 0 22px; border-left: 2px solid var(--line); }
+  ol.trace li { position: relative; padding: 0 0 14px 14px; }
+  ol.trace li::before {
+    content: ""; position: absolute; left: -29px; top: 6px; width: 10px; height: 10px; border-radius: 50%;
+    background: var(--panel); border: 2px solid var(--ink);
+  }
+  ol.trace li.stop::before { background: var(--human); border-color: var(--human); }
+  ol.trace li.done::before { background: var(--auto); border-color: var(--auto); }
+  ol.trace b { font-weight: 600; }
+  ol.trace p { margin: 2px 0 0; font-size: 14px; color: var(--muted); overflow-wrap: anywhere; }
+  ol.trace details { margin-top: 4px; font-size: 13px; color: var(--muted); }
+  ol.trace summary { cursor: pointer; }
+  ol.trace details pre { white-space: pre-wrap; margin: 6px 0 0; font: 12px/1.5 var(--sans); max-height: 180px; overflow: auto; }
+
+  ul.sources { margin: 0; padding-left: 18px; font-size: 14px; color: var(--muted); }
+  .error { background: var(--human-bg); border: 1px solid var(--human); color: #7d2019; border-radius: 6px; padding: 12px 14px; }
+
+  footer { margin-top: 44px; font-size: 13px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Support Triage Agent</h1>
+      <p>Reads a customer ticket, checks the knowledge base and the order system, then either writes a reply or hands the ticket to a person. Every step is shown.</p>
+    </div>
+    <ul class="stats" aria-label="Live statistics">
+      <li><b id="m-total">0</b><span>tickets handled</span></li>
+      <li><b id="m-auto">0</b><span>answered by AI</span></li>
+      <li><b id="m-esc">0</b><span>sent to a person</span></li>
+      <li><b id="m-lat">0.0 s</b><span>average time</span></li>
+    </ul>
+  </header>
+
+  <div id="notice" class="notice" hidden></div>
+
+  <div class="grid">
+    <section aria-labelledby="inbox-h">
+      <h2 id="inbox-h">Sample inbox</h2>
+      <ul class="inbox" id="inbox"></ul>
+
+      <h2>Customer ticket</h2>
+      <div class="letter">
+        <label for="subject">Subject</label>
+        <input id="subject" type="text" maxlength="200" placeholder="What is this about?">
+        <label for="body">Message</label>
+        <textarea id="body" maxlength="4000" placeholder="Pick a sample above or write your own ticket."></textarea>
+        <div class="send">
+          <button class="primary" id="go" type="button">Triage ticket</button>
+          <span class="hint">Card numbers, emails and phone numbers are masked before the AI sees them.</span>
+        </div>
+      </div>
+    </section>
+
+    <section aria-live="polite" aria-labelledby="decision-h">
+      <h2 id="decision-h">Decision</h2>
+      <div id="out" class="empty">
+        <b>No ticket triaged yet</b>
+        Choose a sample ticket or write your own, then select Triage ticket.
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    <div id="kb-line"></div>
+    <div>Demo data only. Order IDs ORD-1001, ORD-1002 and ORD-1003 exist in the fake order system.</div>
+  </footer>
+</div>
+
+<script>
+const SAMPLES = [
+  { subject: "Refund hasn't arrived", body: "Hi, I returned my jacket 9 days ago (order ORD-1003) and I still don't see the refund on my card. When will I get my money back?" },
+  { subject: "Where is my order?", body: "Order ORD-1002 was supposed to arrive last week. The tracking hasn't updated in days and I'm getting worried. What is going on?" },
+  { subject: "Can't log in", body: "I keep getting 'invalid password' and the reset email never comes. I need to reorder something today, please help." },
+  { subject: "Charged twice", body: "I can see two charges for my last order on my card statement (ending 4421). Please sort this out." },
+  { subject: "Bulk order question", body: "We're a company and would like 5,000 units with our own logo printed on them. Do you offer custom branding and volume pricing?" },
+  { subject: "Very unhappy", body: "This is the third time my order arrived broken. I'm speaking to my lawyer and disputing the payment with my bank." }
+];
+
+const $ = (id) => document.getElementById(id);
+const ACTION_LABEL = {
+  triage: "Classified the ticket", guardrail: "Safety rule triggered", search_kb: "Searched the knowledge base",
+  lookup_order: "Looked up the order", escalate: "Decided to escalate", final_reply: "Wrote a reply",
+  invalid_output: "Model output was invalid, retried", fail_safe: "AI unavailable, fail-safe used"
+};
+
+function el(tag, cls, text) {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text !== undefined) n.textContent = text;
+  return n;
+}
+
+// ----- sample inbox -----
+SAMPLES.forEach((s, i) => {
+  const li = el("li");
+  const b = el("button"); b.type = "button"; b.setAttribute("aria-pressed", "false");
+  b.append(el("strong", "", s.subject), el("span", "", s.body));
+  b.addEventListener("click", () => {
+    $("subject").value = s.subject; $("body").value = s.body;
+    document.querySelectorAll("#inbox button").forEach(x => x.setAttribute("aria-pressed", "false"));
+    b.setAttribute("aria-pressed", "true");
+  });
+  li.append(b); $("inbox").append(li);
+});
+
+// ----- metrics + health -----
+async function loadMetrics() {
+  try {
+    const m = await (await fetch("/api/metrics")).json();
+    $("m-total").textContent = m.total; $("m-auto").textContent = m.auto_replied; $("m-esc").textContent = m.escalated;
+    $("m-lat").textContent = (m.avg_latency_ms / 1000).toFixed(1) + " s";
+  } catch (e) { /* stats are optional */ }
+}
+async function loadHealth() {
+  try {
+    const h = await (await fetch("/health")).json();
+    if (h.mode === "demo") {
+      const n = $("notice");
+      n.textContent = "Running without a Hugging Face token, so answers come from keyword matching instead of the language model. Add HF_TOKEN to switch to the full AI agent.";
+      n.hidden = false;
+    }
+  } catch (e) { /* ignore */ }
+}
+
+// ----- render decision -----
+function render(r) {
+  const out = $("out"); out.className = ""; out.replaceChildren();
+  const auto = r.action === "auto_reply";
+
+  const tag = el("div", "tag drop " + (auto ? "auto" : "human"));
+  tag.append(el("h3", "", auto ? "Answered by AI" : "Needs a person"));
+  const conf = el("div", "conf");
+  conf.append(el("b", "", auto ? Math.round(r.confidence * 100) + "%" : "Handed off"), document.createTextNode(auto ? "confidence" : r.mode === "llm" ? "guardrails applied" : "demo mode"));
+  tag.append(conf);
+  out.append(tag);
+
+  const facts = el("dl", "facts");
+  [["Category", r.category], ["Urgency", r.urgency], ["Customer mood", r.sentiment], ["Time taken", (r.latency_ms / 1000).toFixed(1) + " s"]].forEach(([k, v]) => {
+    const d = el("div"); d.append(el("dt", "", k)); const dd = el("dd", (k === "Urgency" && (v === "high" || v === "critical")) ? "hot" : "", v); d.append(dd); facts.append(d);
+  });
+  out.append(facts);
+
+  const why = el("div", "block"); why.append(el("h2", "", "Why"));
+  const p = el("p", "reason", r.reason); p.style.setProperty("--tagc-solid", auto ? "var(--auto)" : "var(--human)"); why.append(p);
+  out.append(why);
+
+  const rep = el("div", "block");
+  rep.append(el("h2", "", auto ? "Reply that would be sent" : "Holding message sent to the customer"));
+  rep.append(el("pre", "reply", r.reply));
+  out.append(rep);
+
+  const tr = el("div", "block"); tr.append(el("h2", "", "How the agent got there"));
+  const ol = el("ol", "trace");
+  r.trace.forEach((t, i) => {
+    const li = el("li", (t.action === "guardrail" || t.action === "escalate" || t.action === "fail_safe") ? "stop" : (t.action === "final_reply" ? "done" : ""));
+    li.append(el("b", "", ACTION_LABEL[t.action] || t.action));
+    const detail = [t.thought, t.input].filter(Boolean).join(" \u2013 ");
+    if (detail) li.append(el("p", "", detail));
+    if (t.observation && t.action !== "triage") {
+      const d = el("details"); d.append(el("summary", "", "What the agent saw"), el("pre", "", t.observation)); li.append(d);
+    }
+    ol.append(li);
+  });
+  tr.append(ol); out.append(tr);
+
+  if (r.sources.length) {
+    const src = el("div", "block"); src.append(el("h2", "", "Knowledge base articles used"));
+    const ul = el("ul", "sources"); r.sources.forEach(s => ul.append(el("li", "", s))); src.append(ul); out.append(src);
+  }
+}
+
+function showError(msg) {
+  const out = $("out"); out.className = ""; out.replaceChildren(el("div", "error", msg));
+}
+
+// ----- submit -----
+$("go").addEventListener("click", async () => {
+  const subject = $("subject").value.trim(), body = $("body").value.trim();
+  if (!subject || !body) { showError("Add a subject and a message, or choose a sample ticket."); return; }
+  const btn = $("go"); btn.disabled = true; btn.textContent = "Triaging\u2026";
+  try {
+    const res = await fetch("/api/demo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ subject, body }) });
+    if (res.status === 429) { showError((await res.json()).detail); return; }
+    if (!res.ok) { showError("The agent returned an error (HTTP " + res.status + "). Try again in a moment."); return; }
+    render(await res.json()); loadMetrics();
+  } catch (e) {
+    showError("Could not reach the agent. If the site was idle, the free hosting plan needs up to a minute to wake up. Wait, then try again.");
+  } finally { btn.disabled = false; btn.textContent = "Triage ticket"; }
+});
+
+async function loadKb() {
+  try {
+    const k = await (await fetch("/api/kb")).json();
+    let t = "Knowledge base: " + k.sections + " sections from " + k.documents + " documents";
+    if (k.web_pages.length) t += ", including " + k.web_pages.length + " web page" + (k.web_pages.length > 1 ? "s" : "") + " scraped with Firecrawl";
+    $("kb-line").textContent = t + ".";
+  } catch (e) { /* optional */ }
+}
+
+loadMetrics(); loadHealth(); loadKb();
+</script>
+</body>
+</html>
