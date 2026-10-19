@@ -281,3 +281,7 @@ This is a portfolio project. In a real company you would add:
 **"What are the risks of feeding scraped web content to an LLM?"** Prompt injection (a page could contain instructions), stale or wrong content, and cost. I strip HTML comments so pages can't forge citations, tell the model that scraped text is reference data only, never fetch URLs supplied by callers, and never let an empty scrape wipe the existing knowledge.
 
 **"What did you learn about cloud?"** Packaging with Docker, describing infrastructure as code, keeping secrets out of Git, wiring CI to deployment, health checks, and designing for the failures external services will have.
+
+## Human approval workspace
+Open `/review`. Receive a fictional ticket, retrieve actual policy sections, inspect/edit the suggested reply, and approve, reject or escalate. Every decision is audited. Approval writes to a local outbox only: no customer email/helpdesk messages are sent. Hard safety escalations and missing-policy tickets cannot be approved here.
+Ticket IDs prevent duplicate intake; expected versions prevent conflicting/double approval. SQLite records are isolated by browser session and expire after 24 hours; ephemeral free hosting resets them on restart. JSON audit export is available in the UI. When AI is unavailable, a source-backed policy template is explicitly labeled. Tests cover approval, evidence, escalation, duplicate intake and session isolation, alongside existing agent/crawler tests.

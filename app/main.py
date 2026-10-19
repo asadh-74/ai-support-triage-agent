@@ -169,3 +169,6 @@ def kb_sync(x_api_key: str | None = Header(default=None)):
 @app.get("/", include_in_schema=False)
 def index():
     return FileResponse(STATIC_DIR / "index.html")
+
+from .review import router as review_router
+app.include_router(review_router)
