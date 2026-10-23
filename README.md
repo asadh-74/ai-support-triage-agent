@@ -1,13 +1,15 @@
 # AI Support Triage Agent
 
-![CI](https://github.com/YOUR-USERNAME/ai-support-triage-agent/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/asadh-74/ai-support-triage-agent/actions/workflows/ci.yml/badge.svg)
 
 An agentic AI service that reads customer support tickets, checks company policy and the order system, and then either **answers the customer** or **hands the ticket to a human with a clear reason**. It is orchestrated with **n8n**, powered by **Hugging Face** models, kept up to date from the company's live website by **Firecrawl**, containerised with **Docker**, tested and built by **GitHub Actions**, and deployed on **Render**.
 
-**Live demo:** https://YOUR-SERVICE.onrender.com &nbsp;|&nbsp; **API docs:** https://YOUR-SERVICE.onrender.com/docs
+**Live review workspace:** https://ai-support-triage-agent-1.onrender.com/review &nbsp;|&nbsp; **API docs:** https://ai-support-triage-agent-1.onrender.com/docs
 *(The free hosting plan sleeps when idle. The first request can take up to a minute.)*
 
-<!-- Add a screenshot or GIF here: docs/demo.gif -->
+**Public demo scope:** approvals create a local outbox record, never an external email. Order records are fictional. n8n, email, Slack, Firecrawl and model-provider integrations require separate configuration; the public workspace does not prove they are connected.
+
+The review queue includes session totals, subject/category search, status filters and refresh to recover from stale review versions.
 
 ---
 
@@ -104,7 +106,7 @@ flowchart LR
 ## Run it locally
 
 ```bash
-git clone https://github.com/YOUR-USERNAME/ai-support-triage-agent.git
+git clone https://github.com/asadh-74/ai-support-triage-agent.git
 cd ai-support-triage-agent
 python -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -r requirements-dev.txt
@@ -140,7 +142,7 @@ git init
 git add .
 git commit -m "AI support triage agent"
 git branch -M main
-git remote add origin https://github.com/YOUR-USERNAME/ai-support-triage-agent.git
+git remote add origin https://github.com/asadh-74/ai-support-triage-agent.git
 git push -u origin main
 ```
 
